@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     }
 
     let url = `${baseUrl}?select=*&order=created_at.desc`;
-    let method = req.method;
+    const method = req.method;
     let body;
 
     if (method === "POST") {
@@ -71,12 +71,23 @@ export default async function handler(req, res) {
         image_url
       } = req.body || {};
 
+      const safeTitle = typeof title === "string" ? title.trim() : "";
+      const safeMessage = typeof message === "string" ? message.trim() : "";
+      const safeImageUrl =
+        typeof image_url === "string" ? image_url.trim() : "";
+
       if (
-        typeof title !== "string" || !title.trim() ||
-        typeof message !== "string" || !message.trim()
+        (title !== undefined && typeof title !== "string") ||
+        (message !== undefined && typeof message !== "string")
       ) {
         return res.status(400).json({
-          error: "Title and message are required."
+          error: "Invalid title or message."
+        });
+      }
+
+      if (!safeTitle && !safeMessage && !safeImageUrl) {
+        return res.status(400).json({
+          error: "Please provide a title, message, or image."
         });
       }
 
@@ -97,14 +108,11 @@ export default async function handler(req, res) {
       }
 
       body = {
-        title: title.trim(),
-        message: message.trim(),
+        title: safeTitle,
+        message: safeMessage,
         announcement_type,
         is_published: is_published === true,
-        image_url:
-          typeof image_url === "string"
-            ? image_url.trim() || null
-            : null
+        image_url: safeImageUrl || null
       };
 
     } else if (method === "PATCH" || method === "DELETE") {
@@ -128,14 +136,14 @@ export default async function handler(req, res) {
         body = {};
 
         if (title !== undefined) {
-          if (typeof title !== "string" || !title.trim()) {
+          if (typeof title !== "string") {
             return res.status(400).json({ error: "Invalid title." });
           }
           body.title = title.trim();
         }
 
         if (message !== undefined) {
-          if (typeof message !== "string" || !message.trim()) {
+          if (typeof message !== "string") {
             return res.status(400).json({ error: "Invalid message." });
           }
           body.message = message.trim();
@@ -166,8 +174,15 @@ export default async function handler(req, res) {
               : null;
         }
 
+        if (Object.keys(body).length === 0) {
+          return res.status(400).json({
+            error: "No announcement changes provided."
+          });
+        }
+
         body.updated_at = new Date().toISOString();
       }
+
     } else if (method !== "GET") {
       res.setHeader("Allow", "GET, POST, PATCH, DELETE");
       return res.status(405).json({ error: "Method not allowed." });
@@ -186,18 +201,22 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(url, fetchOptions);
-    const text = await response.text();
+    const responseText = await response.text();
 
     let data = null;
+
     try {
-      data = text ? JSON.parse(text) : null;
+      data = responseText ? JSON.parse(responseText) : null;
     } catch {
       data = { error: "Invalid response from database." };
     }
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data?.message || data?.error || "Announcement request failed."
+        error:
+          data?.message ||
+          data?.error ||
+          "Announcement request failed."
       });
     }
 
