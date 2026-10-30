@@ -432,6 +432,187 @@
         usersError.message || 'Could not load users.';
   }
         
+    // ANNOUNCEMENT MANAGEMENT
+
+    const announcementForm = document.getElementById('announcementForm');
+    const announcementId = document.getElementById('announcementId');
+    const announcementTitle = document.getElementById('announcementTitle');
+    const announcementMessage = document.getElementById('announcementMessage');
+    const announcementType = document.getElementById('announcementType');
+    const announcementPublished = document.getElementById('announcementPublished');
+    const announcementSaveBtn = document.getElementById('announcementSaveBtn');
+    const announcementCancelBtn = document.getElementById('announcementCancelBtn');
+    const announcementList = document.getElementById('announcementList');
+    const announcementListMessage = document.getElementById('announcementListMessage');
+
+    let allAnnouncements = [];
+
+    async function announcementRequest(method = 'GET', id = null, data = null) {
+      const url = id
+        ? `/api/announcements?id=${encodeURIComponent(id)}`
+        : '/api/announcements';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          Authorization: 'Bearer ' + session.access_token,
+          'Content-Type': 'application/json'
+        },
+        ...(data ? { body: JSON.stringify(data) } : {}),
+        cache: 'no-store'
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Announcement request failed.');
+      }
+
+      return result;
+    }
+
+    function resetAnnouncementForm() {
+      announcementForm.reset();
+      announcementId.value = '';
+      announcementSaveBtn.textContent = 'Save Announcement';
+      announcementCancelBtn.style.display = 'none';
+    }
+
+    function renderAnnouncements() {
+      announcementList.replaceChildren();
+
+      if (!allAnnouncements.length) {
+        announcementListMessage.textContent = 'No announcements yet.';
+        return;
+      }
+
+      announcementListMessage.textContent =
+        'Total announcements: ' + allAnnouncements.length;
+
+      allAnnouncements.forEach(item => {
+        const card = document.createElement('div');
+        card.style.cssText =
+          'border:1px solid #e8e5ef;border-radius:12px;padding:16px;margin:12px 0;';
+
+        const title = document.createElement('h3');
+        title.textContent = item.title;
+
+        const messageText = document.createElement('p');
+        messageText.textContent = item.message;
+
+        const type = document.createElement('p');
+        type.textContent = 'Type: ' + item.announcement_type;
+
+        const status = document.createElement('p');
+        status.textContent = item.is_published ? 'Published' : 'Unpublished';
+        status.style.fontWeight = '800';
+        status.style.color = item.is_published ? '#16834a' : '#b7791f';
+
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.textContent = 'Edit';
+        editButton.style.marginRight = '8px';
+        editButton.addEventListener('click', () => {
+          announcementId.value = item.id;
+          announcementTitle.value = item.title;
+          announcementMessage.value = item.message;
+          announcementType.value = item.announcement_type;
+          announcementPublished.checked = item.is_published;
+          announcementSaveBtn.textContent = 'Update Announcement';
+          announcementCancelBtn.style.display = 'inline-block';
+          announcementForm.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        const publishButton = document.createElement('button');
+        publishButton.type = 'button';
+        publishButton.textContent = item.is_published ? 'Unpublish' : 'Publish';
+        publishButton.style.marginRight = '8px';
+        publishButton.addEventListener('click', async () => {
+          try {
+            await announcementRequest('PATCH', item.id, {
+              is_published: !item.is_published
+            });
+            await loadAnnouncements();
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Delete';
+        deleteButton.addEventListener('click', async () => {
+          if (!confirm('Are you sure you want to delete this announcement?')) {
+            return;
+          }
+
+          try {
+            await announcementRequest('DELETE', item.id);
+            await loadAnnouncements();
+            if (String(announcementId.value) === String(item.id)) {
+              resetAnnouncementForm();
+            }
+          } catch (error) {
+            alert(error.message);
+          }
+        });
+
+        card.append(title, messageText, type, status, editButton, publishButton, deleteButton);
+        announcementList.appendChild(card);
+      });
+    }
+
+    async function loadAnnouncements() {
+      announcementListMessage.textContent = 'Loading announcements...';
+
+      try {
+        const result = await announcementRequest('GET');
+        allAnnouncements = Array.isArray(result) ? result : [];
+        renderAnnouncements();
+      } catch (error) {
+        announcementListMessage.textContent = error.message;
+      }
+    }
+
+    announcementForm.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const data = {
+        title: announcementTitle.value.trim(),
+        message: announcementMessage.value.trim(),
+        announcement_type: announcementType.value,
+        is_published: announcementPublished.checked
+      };
+
+      if (!data.title || !data.message) {
+        alert('Please enter both title and message.');
+        return;
+      }
+
+      announcementSaveBtn.disabled = true;
+
+      try {
+        if (announcementId.value) {
+          await announcementRequest('PATCH', announcementId.value, data);
+        } else {
+          await announcementRequest('POST', null, data);
+        }
+
+        resetAnnouncementForm();
+        await loadAnnouncements();
+        alert('Announcement saved successfully.');
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        announcementSaveBtn.disabled = false;
+      }
+    });
+
+    announcementCancelBtn.addEventListener('click', resetAnnouncementForm);
+
+    resetAnnouncementForm();
+    loadAnnouncements();
+  
     message.classList.add('hidden');
     dashboard.classList.remove('hidden');
 
