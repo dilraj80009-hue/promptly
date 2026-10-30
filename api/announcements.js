@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -62,8 +63,13 @@ export default async function handler(req, res) {
     let body;
 
     if (method === "POST") {
-      const { title, message, announcement_type, is_published } =
-        req.body || {};
+      const {
+        title,
+        message,
+        announcement_type,
+        is_published,
+        image_url
+      } = req.body || {};
 
       if (
         typeof title !== "string" || !title.trim() ||
@@ -80,12 +86,27 @@ export default async function handler(req, res) {
         });
       }
 
+      if (
+        image_url !== undefined &&
+        image_url !== null &&
+        typeof image_url !== "string"
+      ) {
+        return res.status(400).json({
+          error: "Invalid image URL."
+        });
+      }
+
       body = {
         title: title.trim(),
         message: message.trim(),
         announcement_type,
-        is_published: is_published === true
+        is_published: is_published === true,
+        image_url:
+          typeof image_url === "string"
+            ? image_url.trim() || null
+            : null
       };
+
     } else if (method === "PATCH" || method === "DELETE") {
       const id = req.query?.id;
 
@@ -96,8 +117,13 @@ export default async function handler(req, res) {
       url = `${baseUrl}?id=eq.${encodeURIComponent(id)}&select=*`;
 
       if (method === "PATCH") {
-        const { title, message, announcement_type, is_published } =
-          req.body || {};
+        const {
+          title,
+          message,
+          announcement_type,
+          is_published,
+          image_url
+        } = req.body || {};
 
         body = {};
 
@@ -127,6 +153,17 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "Invalid publish status." });
           }
           body.is_published = is_published;
+        }
+
+        if (image_url !== undefined) {
+          if (image_url !== null && typeof image_url !== "string") {
+            return res.status(400).json({ error: "Invalid image URL." });
+          }
+
+          body.image_url =
+            typeof image_url === "string"
+              ? image_url.trim() || null
+              : null;
         }
 
         body.updated_at = new Date().toISOString();
@@ -165,9 +202,10 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json(data);
+
   } catch (error) {
     return res.status(500).json({
       error: "Could not process announcement request."
     });
   }
-                                         }
+}
