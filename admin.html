@@ -542,6 +542,10 @@
     const announcementCancelBtn = document.getElementById('announcementCancelBtn');
     const announcementList = document.getElementById('announcementList');
     const announcementListMessage = document.getElementById('announcementListMessage');
+    
+const announcementImage = document.getElementById('announcementImage');
+const announcementImageStatus = document.getElementById('announcementImageStatus');
+    
 
     let allAnnouncements = [];
 
@@ -571,6 +575,8 @@
 
     function resetAnnouncementForm() {
       announcementForm.reset();
+      announcementImage.value = '';
+announcementImageStatus.textContent = 'You can upload an image poster. This is optional.';
       announcementId.value = '';
       announcementSaveBtn.textContent = 'Save Announcement';
       announcementCancelBtn.style.display = 'none';
