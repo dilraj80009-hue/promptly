@@ -318,7 +318,7 @@ function localProcess(raw,action){
 }
 async function apiProcess(raw,action){const c=window.PROMPTLY_CONFIG||{};if(!c.API_URL)return null;const r=await fetch(c.API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:raw,action,settings:settings()})});if(!r.ok)throw new Error('API error');const d=await r.json();return d.result||d.prompt||d.output||null}
 async function runAction(action){
- const raw=$('promptInput').value.trim();if(!raw){status('Prompt created. Choose a tool below to refine it.');
+ status('Prompt created. Choose a tool below to refine it.');
  const titles={enhance:'Enhanced prompt',correct:'Corrected prompt',basic:'Basic prompt',advanced:'Advanced prompt',shorten:'Shortened prompt',detail:'Detailed prompt'};
  status('Working on your prompt...');
  try{const remote=await apiProcess(raw,action);showOutput(titles[action],remote||localProcess(raw,action));if(!remote)status('Local preview created. Connect an AI API for real model-powered results.')}
