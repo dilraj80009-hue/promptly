@@ -75,6 +75,115 @@ textarea::placeholder{color:#a3a5af}
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
+<style>
+  .promptly-announcements {
+    max-width: 1100px;
+    margin: 16px auto;
+    padding: 0 16px;
+  }
+
+  .promptly-announcement {
+    position: relative;
+    padding: 16px 48px 16px 18px;
+    margin-bottom: 12px;
+    border: 1px solid #e5defb;
+    border-left: 5px solid #7653df;
+    border-radius: 12px;
+    background: #f8f6ff;
+    color: #242039;
+  }
+
+  .promptly-announcement.success {
+    border-color: #bce8ce;
+    border-left-color: #16834a;
+    background: #f2fbf5;
+  }
+
+  .promptly-announcement.warning {
+    border-color: #f3d69a;
+    border-left-color: #c18416;
+    background: #fffaf0;
+  }
+
+  .promptly-announcement h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+
+  .promptly-announcement p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .promptly-announcement-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 22px;
+    cursor: pointer;
+  }
+</style>
+
+<div id="promptlyAnnouncements" class="promptly-announcements"></div>
+
+<script>
+(async function loadPublicAnnouncements() {
+  const container = document.getElementById('promptlyAnnouncements');
+
+  try {
+    const response = await fetch('/api/announcements', {
+      method: 'GET',
+      cache: 'no-store'
+    });
+
+    if (!response.ok) return;
+
+    const announcements = await response.json();
+
+    if (!Array.isArray(announcements)) return;
+
+    announcements.forEach(item => {
+      if (!item.is_published) return;
+
+      const card = document.createElement('div');
+      card.className = 'promptly-announcement';
+
+      if (item.announcement_type === 'success') {
+        card.classList.add('success');
+      } else if (item.announcement_type === 'warning') {
+        card.classList.add('warning');
+      }
+
+      const title = document.createElement('h3');
+      title.textContent = item.title;
+
+      const message = document.createElement('p');
+      message.textContent = item.message;
+
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'promptly-announcement-close';
+      close.textContent = '×';
+      close.setAttribute('aria-label', 'Close announcement');
+
+      close.addEventListener('click', () => {
+        card.remove();
+      });
+
+      card.append(title, message, close);
+      container.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Announcements could not be loaded.');
+  }
+})();
+</script>
+  
 <header class="site-header">
  <div class="header-inner">
   <div class="brand"><div class="brand-symbol">✳</div>promptly<em>.</em></div>
