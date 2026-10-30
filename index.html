@@ -73,8 +73,18 @@ textarea::placeholder{color:#a3a5af}
 <header class="site-header">
  <div class="header-inner">
   <div class="brand"><div class="brand-symbol">✳</div>promptly<em>.</em></div>
-  <div class="header-right"><button class="header-link" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">Explore tools</button><span class="free-tag">100% Free tools</span><button class="auth-login" id="openLogin">Log in</button><button class="auth-signup" id="openSignup">Sign up</button></div>
- </div>
+
+<div class="header-right">
+  <button class="header-link" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">Explore tools</button>
+  <span class="free-tag">100% Free tools</span>
+
+  <span id="userWelcome" style="display:none;font-weight:700;"></span>
+  <button class="auth-login" id="logoutBtn" style="display:none;">Log out</button>
+
+  <button class="auth-login" id="openLogin">Log in</button>
+  <button class="auth-signup" id="openSignup">Sign up</button>
+</div>
+</div>
 </header>
 <main>
  <section class="hero">
