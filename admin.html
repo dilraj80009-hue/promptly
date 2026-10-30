@@ -719,39 +719,47 @@ announcementImageStatus.textContent = 'You can upload an image poster. This is o
       }
     }
 
-    announcementForm.addEventListener('submit', async event => {
-      event.preventDefault();
+    
+announcementForm.addEventListener('submit', async event => {
+  event.preventDefault();
 
-      const data = {
-        title: announcementTitle.value.trim(),
-        message: announcementMessage.value.trim(),
-        announcement_type: announcementType.value,
-        is_published: announcementPublished.checked
-      };
+  const data = {
+    title: announcementTitle.value.trim(),
+    message: announcementMessage.value.trim(),
+    announcement_type: announcementType.value,
+    is_published: announcementPublished.checked
+  };
 
-      if (!data.title || !data.message) {
-        alert('Please enter both title and message.');
-        return;
-      }
+  if (!data.title || !data.message) {
+    alert('Please enter both title and message.');
+    return;
+  }
 
-      announcementSaveBtn.disabled = true;
+  announcementSaveBtn.disabled = true;
 
-      try {
-        if (announcementId.value) {
-          await announcementRequest('PATCH', announcementId.value, data);
-        } else {
-          await announcementRequest('POST', null, data);
-        }
+  try {
+    const imageUrl = await uploadAnnouncementImage();
 
-        resetAnnouncementForm();
-        await loadAnnouncements();
-        alert('Announcement saved successfully.');
-      } catch (error) {
-        alert(error.message);
-      } finally {
-        announcementSaveBtn.disabled = false;
-      }
-    });
+    if (imageUrl) {
+      data.image_url = imageUrl;
+    }
+
+    if (announcementId.value) {
+      await announcementRequest('PATCH', announcementId.value, data);
+    } else {
+      await announcementRequest('POST', null, data);
+    }
+
+    resetAnnouncementForm();
+    await loadAnnouncements();
+    alert('Announcement saved successfully.');
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    announcementSaveBtn.disabled = false;
+  }
+});
+    
 
     announcementCancelBtn.addEventListener('click', resetAnnouncementForm);
 
