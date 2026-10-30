@@ -162,7 +162,20 @@ textarea::placeholder{color:#a3a5af}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script>
+<script>const promptlyConfig = window.PROMPTLY_CONFIG || {};
+
+if (
+  !window.supabase ||
+  !promptlyConfig.SUPABASE_URL ||
+  !promptlyConfig.SUPABASE_PUBLISHABLE_KEY
+) {
+  throw new Error("Supabase configuration is missing.");
+}
+
+const supabaseClient = window.supabase.createClient(
+  promptlyConfig.SUPABASE_URL,
+  promptlyConfig.SUPABASE_PUBLISHABLE_KEY
+);
 const $=id=>document.getElementById(id);let resultText='';
 function settings(){return {level:$('level').value,tone:$('tone').value,language:$('language').value,format:$('format').value,context:$('context').value.trim()}}
 function status(t){$('mainStatus').textContent=t}
