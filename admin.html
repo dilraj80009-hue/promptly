@@ -573,6 +573,47 @@ const announcementImageStatus = document.getElementById('announcementImageStatus
       return result;
     }
 
+async function uploadAnnouncementImage() {
+  const file = announcementImage.files[0];
+
+  if (!file) {
+    return null;
+  }
+
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please select a valid image.');
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error('Image size must be below 5 MB.');
+  }
+
+  announcementImageStatus.textContent = 'Uploading image...';
+
+  const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from('announcement-images')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data: publicData } = supabaseClient
+    .storage
+    .from('announcement-images')
+    .getPublicUrl(data.path);
+
+  announcementImageStatus.textContent = 'Image uploaded successfully.';
+
+  return publicData.publicUrl;
+  }
+        
     function resetAnnouncementForm() {
       announcementForm.reset();
       announcementImage.value = '';
