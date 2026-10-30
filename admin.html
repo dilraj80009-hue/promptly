@@ -291,7 +291,7 @@
       id="announcementTitle"
       placeholder="Enter announcement title"
       maxlength="120"
-      required
+      
     >
 
     <label for="announcementMessage">Message</label>
@@ -300,7 +300,7 @@
       placeholder="Write your announcement..."
       rows="4"
       maxlength="1000"
-      required
+      
     ></textarea>
 
 <label for="announcementImage">Announcement Poster (Optional)</label>
@@ -729,12 +729,12 @@ announcementForm.addEventListener('submit', async event => {
     announcement_type: announcementType.value,
     is_published: announcementPublished.checked
   };
-
-  if (!data.title || !data.message) {
-    alert('Please enter both title and message.');
-    return;
+  
+if (!data.title && !data.message && !announcementImage.files[0]) {
+  alert('Please enter a title, message, or select an image.');
+  return;
   }
-
+  
   announcementSaveBtn.disabled = true;
 
   try {
