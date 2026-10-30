@@ -1,0 +1,9 @@
+{
+  "name": "promptly",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Promptly AI Prompt Assistant",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
