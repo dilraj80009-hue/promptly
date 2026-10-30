@@ -97,7 +97,45 @@
       margin-top: 25px;
       color: #777487;
     }
+ 
+    .user-toolbar {
+      display: flex;
+      gap: 12px;
+      margin: 18px 0;
+    }
 
+    .user-toolbar input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #e5e2ef;
+      border-radius: 9px;
+      font: inherit;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 650px;
+      font-size: 13px;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 13px;
+      text-align: left;
+      border-bottom: 1px solid #eeeef3;
+    }
+
+    .users-table th {
+      color: #777487;
+      background: #faf9fd;
+    }
+
+    .status-confirmed { color: #16834a; font-weight: 800; }
+    .status-pending { color: #b7791f; font-weight: 800; }
+    
     .hidden { display: none; }
 
     @media(max-width:650px) {
@@ -151,6 +189,36 @@
       <a class="link" href="https://vercel.com/dilraj80009-hue/promptly/analytics" target="_blank" rel="noopener">Open Analytics</a>
     </div>
 
+    
+    <div class="section" id="userManagement">
+      <h2>User Management</h2>
+      <p>View and search all registered Promptly users.</p>
+
+      <div class="user-toolbar">
+        <input
+          type="search"
+          id="userSearch"
+          placeholder="Search by name or email..."
+        >
+      </div>
+
+      <div id="usersMessage">Loading users...</div>
+
+      <div class="table-wrap">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Signup Date</th>
+              <th>Email Status</th>
+              <th>Last Login</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
     <div class="section">
       <h2>Admin Access</h2>
       <p id="adminEmail">Verifying account...</p>
@@ -229,6 +297,90 @@
     document.getElementById('adminEmail').textContent =
       'Signed in as: ' + session.user.email;
 
+    const usersMessage = document.getElementById('usersMessage');
+    const usersTableBody = document.getElementById('usersTableBody');
+    const userSearch = document.getElementById('userSearch');
+
+    let allUsers = [];
+
+    function renderUsers(searchText = '') {
+      usersTableBody.replaceChildren();
+
+      const filteredUsers = allUsers.filter(user => {
+        const search = searchText.toLowerCase();
+        return (
+          (user.full_name || '').toLowerCase().includes(search) ||
+          (user.email || '').toLowerCase().includes(search)
+        );
+      });
+
+      if (filteredUsers.length === 0) {
+        usersMessage.textContent = 'No users found.';
+        return;
+      }
+
+      usersMessage.textContent =
+        'Showing ' + filteredUsers.length + ' users.';
+
+      filteredUsers.forEach(user => {
+        const row = document.createElement('tr');
+
+        const values = [
+          user.full_name || 'Not provided',
+          user.email || 'No email',
+          user.created_at
+            ? new Date(user.created_at).toLocaleDateString()
+            : '—',
+          user.email_confirmed_at ? 'Confirmed' : 'Pending',
+          user.last_sign_in_at
+            ? new Date(user.last_sign_in_at).toLocaleString()
+            : 'Never'
+        ];
+
+        values.forEach((value, index) => {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+
+          if (index === 3) {
+            cell.className = user.email_confirmed_at
+              ? 'status-confirmed'
+              : 'status-pending';
+          }
+
+          row.appendChild(cell);
+        });
+
+        usersTableBody.appendChild(row);
+      });
+    }
+
+    try {
+      const usersResponse = await fetch('/api/admin-users', {
+        headers: {
+          Authorization: 'Bearer ' + session.access_token
+        },
+        cache: 'no-store'
+      });
+
+      const usersResult = await usersResponse.json();
+
+      if (!usersResponse.ok) {
+        throw new Error(
+          usersResult.error || 'Could not load users.'
+        );
+      }
+
+      allUsers = Array.isArray(usersResult) ? usersResult : [];
+      renderUsers();
+
+      userSearch.addEventListener('input', () => {
+        renderUsers(userSearch.value);
+      });
+    } catch (usersError) {
+      usersMessage.textContent =
+        usersError.message || 'Could not load users.';
+  }
+        
     message.classList.add('hidden');
     dashboard.classList.remove('hidden');
 
