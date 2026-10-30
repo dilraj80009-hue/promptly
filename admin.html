@@ -592,7 +592,7 @@ async function uploadAnnouncementImage() {
 
   const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 
-  const { data, error } = await supabaseClient
+  const { data, error } = await client
     .storage
     .from('announcement-images')
     .upload(fileName, file, {
@@ -604,7 +604,7 @@ async function uploadAnnouncementImage() {
     throw error;
   }
 
-  const { data: publicData } = supabaseClient
+  const { data: publicData } = client
     .storage
     .from('announcement-images')
     .getPublicUrl(data.path);
