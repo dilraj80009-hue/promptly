@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Promptly Admin Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: #f7f7fb;
+      color: #191827;
+      font-family: 'Manrope', sans-serif;
+    }
+
+    .header {
+      height: 72px;
+      background: white;
+      border-bottom: 1px solid #eeeef3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6%;
+    }
+
+    .brand { font-size: 23px; font-weight: 800; }
+    .brand span { color: #7955e9; }
+
+    button, .link {
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 17px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      text-decoration: none;
+    }
+
+    .logout { background: #f0edff; color: #6845dc; }
+
+    main {
+      max-width: 1120px;
+      margin: 42px auto;
+      padding: 0 22px;
+    }
+
+    .welcome h1 { font-size: 29px; margin: 0 0 7px; }
+    .welcome p { color: #777487; margin: 0; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ecebf2;
+      border-radius: 15px;
+      padding: 23px;
+    }
+
+    .card-label { color: #777487; font-size: 13px; font-weight: 700; }
+    .number { font-size: 32px; font-weight: 800; margin-top: 13px; }
+    .icon { color: #7955e9; font-size: 21px; }
+
+    .section {
+      margin-top: 27px;
+      background: white;
+      border: 1px solid #ecebf2;
+      border-radius: 15px;
+      padding: 24px;
+    }
+
+    .section h2 { font-size: 18px; margin: 0 0 9px; }
+    .section p { color: #777487; font-size: 14px; line-height: 1.7; }
+
+    .link {
+      display: inline-block;
+      background: #7955e9;
+      color: white;
+      margin-top: 8px;
+    }
+
+    #message {
+      background: white;
+      border: 1px solid #ecebf2;
+      border-radius: 13px;
+      padding: 22px;
+      margin-top: 25px;
+      color: #777487;
+    }
+
+    .hidden { display: none; }
+
+    @media(max-width:650px) {
+      .grid { grid-template-columns: 1fr; }
+      main { margin-top: 28px; }
+      .welcome h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="header">
+  <div class="brand">promptly<span>.</span> Admin</div>
+  <button class="logout hidden" id="logoutBtn">Log out</button>
+</header>
+
+<main>
+  <div class="welcome">
+    <h1>Dashboard Overview</h1>
+    <p>Welcome to your Promptly administration panel.</p>
+  </div>
+
+  <div id="message">Checking your Admin access...</div>
+
+  <div id="dashboard" class="hidden">
+
+    <div class="grid">
+      <div class="card">
+        <div class="icon">♙</div>
+        <div class="card-label">Total Registered Users</div>
+        <div class="number" id="totalUsers">—</div>
+      </div>
+
+      <div class="card">
+        <div class="icon">✓</div>
+        <div class="card-label">Confirmed Users</div>
+        <div class="number" id="confirmedUsers">—</div>
+      </div>
+
+      <div class="card">
+        <div class="icon">✳</div>
+        <div class="card-label">Prompts Generated</div>
+        <div class="number" id="promptCount">—</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Website Analytics</h2>
+      <p>View your website visitors, page views and traffic analytics through Vercel.</p>
+      <a class="link" href="https://vercel.com/dilraj80009-hue/promptly/analytics" target="_blank" rel="noopener">Open Analytics</a>
+    </div>
+
+    <div class="section">
+      <h2>Admin Access</h2>
+      <p id="adminEmail">Verifying account...</p>
+      <p>Only the authorized administrator can access this dashboard.</p>
+    </div>
+
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+
+<script>
+(async function () {
+  const message = document.getElementById('message');
+  const dashboard = document.getElementById('dashboard');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  const config = window.PROMPTLY_CONFIG || {};
+
+  if (
+    !window.supabase ||
+    !config.SUPABASE_URL ||
+    !config.SUPABASE_PUBLISHABLE_KEY
+  ) {
+    message.textContent = 'Supabase configuration is missing.';
+    return;
+  }
+
+  const client = window.supabase.createClient(
+    config.SUPABASE_URL,
+    config.SUPABASE_PUBLISHABLE_KEY
+  );
+
+  try {
+    const { data, error } = await client.auth.getSession();
+
+    if (error) throw error;
+
+    const session = data.session;
+
+    if (!session) {
+      message.textContent = 'Login required. Please log in through the main website first.';
+      return;
+    }
+
+    logoutBtn.classList.remove('hidden');
+
+    const response = await fetch('/api/admin-stats', {
+      headers: {
+        Authorization: 'Bearer ' + session.access_token
+      },
+      cache: 'no-store'
+    });
+
+    const result = await response.json();
+
+    if (response.status === 403) {
+      message.textContent = 'Access denied. This account is not an administrator.';
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Could not load dashboard.');
+    }
+
+    document.getElementById('totalUsers').textContent =
+      result.total_users ?? 0;
+
+    document.getElementById('confirmedUsers').textContent =
+      result.confirmed_users ?? 0;
+
+    document.getElementById('promptCount').textContent =
+      result.prompt_generations ?? 0;
+
+    document.getElementById('adminEmail').textContent =
+      'Signed in as: ' + session.user.email;
+
+    message.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+
+  } catch (error) {
+    message.textContent = error.message || 'Something went wrong.';
+  }
+
+  logoutBtn.onclick = async function () {
+    const { error } = await client.auth.signOut();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    window.location.href = '/';
+  };
+})();
+</script>
+
+</body>
+</html>
+dy>
+  </html>
+  
