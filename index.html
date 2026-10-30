@@ -294,6 +294,51 @@ $('authForm').onsubmit = async (e) => {
   }
 };
  
+async function updateUserInterface() {
+  const { data: { session }, error } =
+    await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const loggedIn = !!session;
+  const welcome = $('userWelcome');
+
+  $('openLogin').style.display = loggedIn ? 'none' : '';
+  $('openSignup').style.display = loggedIn ? 'none' : '';
+  $('logoutBtn').style.display = loggedIn ? '' : 'none';
+  welcome.style.display = loggedIn ? '' : 'none';
+
+  if (loggedIn) {
+    const name = session.user.user_metadata?.full_name;
+    welcome.textContent = name
+      ? `Hi, ${name}`
+      : session.user.email;
+  } else {
+    welcome.textContent = '';
+  }
+}
+
+supabaseClient.auth.onAuthStateChange(() => {
+  updateUserInterface();
+});
+
+$('logoutBtn').onclick = async () => {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  $('authMessage').textContent = 'You have logged out.';
+  updateUserInterface();
+};
+
+updateUserInterface();
+ 
 </script>
 </body>
 </html>
