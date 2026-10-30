@@ -291,48 +291,7 @@ window.va = window.va || function () {
 <script src="config.js"></script>
 
 <script>
-(function loadPublicAnnouncements() {
-  const container = document.getElementById('promptlyAnnouncements');
 
-  fetch('/api/announcements', {method:'GET',cache:'no-store'})
-    .then(response => {
-      if (!response.ok) return [];
-      return response.json();
-    })
-    .then(announcements => {
-      if (!Array.isArray(announcements)) return;
-
-      announcements.forEach(item => {
-        if (!item.is_published) return;
-
-        const card = document.createElement('div');
-        card.className = 'promptly-announcement';
-
-        if (item.announcement_type === 'success') {
-          card.classList.add('success');
-        } else if (item.announcement_type === 'warning') {
-          card.classList.add('warning');
-        }
-
-        const title = document.createElement('h3');
-        title.textContent = item.title;
-
-        const message = document.createElement('p');
-        message.textContent = item.message;
-
-        const close = document.createElement('button');
-        close.type = 'button';
-        close.className = 'promptly-announcement-close';
-        close.textContent = '×';
-        close.setAttribute('aria-label','Close announcement');
-        close.addEventListener('click', () => card.remove());
-
-        card.append(title,message,close);
-        container.appendChild(card);
-      });
-    })
-    .catch(() => console.error('Announcements could not be loaded.'));
-})();
 
 const promptlyConfig = window.PROMPTLY_CONFIG || {};
 
@@ -362,7 +321,210 @@ function settings() {
   };
 }
 
-function status(message) {
+function s
+(function loadPublicAnnouncements() {
+  const container = document.getElementById('promptlyAnnouncements');
+
+  fetch('/api/announcements', {
+    method: 'GET',
+    cache: 'no-store'
+  })
+    .then(response => {
+      if (!response.ok) return [];
+      return response.json();
+    })
+    .then(announcements => {
+      if (!Array.isArray(announcements)) return;
+
+      const published = announcements.filter(item => item.is_published);
+
+      // Keep the existing text announcement cards.
+      published.forEach(item => {
+        if (!container) return;
+        if (!item.title && !item.message) return;
+
+        const card = document.createElement('div');
+        card.className = 'promptly-announcement';
+
+        if (item.announcement_type === 'success') {
+          card.classList.add('success');
+        } else if (item.announcement_type === 'warning') {
+          card.classList.add('warning');
+        }
+
+        if (item.title) {
+          const title = document.createElement('h3');
+          title.textContent = item.title;
+          card.appendChild(title);
+        }
+
+        if (item.message) {
+          const message = document.createElement('p');
+          message.textContent = item.message;
+          card.appendChild(message);
+        }
+
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'promptly-announcement-close';
+        close.textContent = '×';
+        close.setAttribute('aria-label', 'Close announcement');
+        close.addEventListener('click', () => card.remove());
+
+        card.appendChild(close);
+        container.appendChild(card);
+      });
+
+      // Find the first unseen published image announcement.
+      const imageAnnouncement = published.find(item => {
+        if (!item.image_url) return false;
+
+        const announcementKey = item.id || item.created_at;
+        if (!announcementKey) return false;
+
+        try {
+          return localStorage.getItem(
+            'promptly_seen_announcement_' + announcementKey
+          ) !== 'yes';
+        } catch {
+          return false;
+        }
+      });
+
+      if (!imageAnnouncement) return;
+
+      // Create modal styles.
+      if (!document.getElementById('promptly-image-modal-styles')) {
+        const style = document.createElement('style');
+        style.id = 'promptly-image-modal-styles';
+        style.textContent = `
+          .promptly-image-modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(15, 23, 42, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+          }
+          .promptly-image-modal {
+            position: relative;
+            width: min(100%, 520px);
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.28);
+            text-align: center;
+          }
+          .promptly-image-modal img {
+            display: block;
+            width: 100%;
+            max-height: 68vh;
+            object-fit: contain;
+            border-radius: 10px;
+          }
+          .promptly-image-modal h2 {
+            margin: 14px 34px 6px;
+            font-size: 21px;
+            color: #171717;
+          }
+          .promptly-image-modal p {
+            margin: 6px 8px 12px;
+            color: #525252;
+            line-height: 1.5;
+          }
+          .promptly-image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(0,0,0,.72);
+            color: white;
+            font-size: 25px;
+            cursor: pointer;
+            z-index: 1;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Build the image announcement popup.
+      const overlay = document.createElement('div');
+      overlay.className = 'promptly-image-modal-overlay';
+
+      const modal = document.createElement('div');
+      modal.className = 'promptly-image-modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-label', 'Announcement');
+
+      const closeButton = document.createElement('button');
+      closeButton.type = 'button';
+      closeButton.className = 'promptly-image-modal-close';
+      closeButton.textContent = '×';
+      closeButton.setAttribute('aria-label', 'Close announcement');
+
+      const image = document.createElement('img');
+      image.src = imageAnnouncement.image_url;
+      image.alt = imageAnnouncement.title || 'Announcement poster';
+
+      modal.appendChild(closeButton);
+      modal.appendChild(image);
+
+      if (imageAnnouncement.title) {
+        const title = document.createElement('h2');
+        title.textContent = imageAnnouncement.title;
+        modal.appendChild(title);
+      }
+
+      if (imageAnnouncement.message) {
+        const message = document.createElement('p');
+        message.textContent = imageAnnouncement.message;
+        modal.appendChild(message);
+      }
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Remember this announcement after the visitor closes it.
+      function closeModal() {
+        const announcementKey =
+          imageAnnouncement.id || imageAnnouncement.created_at;
+
+        try {
+          localStorage.setItem(
+            'promptly_seen_announcement_' + announcementKey,
+            'yes'
+          );
+        } catch (error) {
+          console.warn('Could not save announcement display status.');
+        }
+
+        overlay.remove();
+        document.removeEventListener('keydown', handleEscape);
+      }
+
+      function handleEscape(event) {
+        if (event.key === 'Escape') closeModal();
+      }
+
+      closeButton.addEventListener('click', closeModal);
+
+      overlay.addEventListener('click', event => {
+        if (event.target === overlay) closeModal();
+      });
+
+      document.addEventListener('keydown', handleEscape);
+    })
+    .catch(() => console.error('Announcements could not be loaded.'));
+})();
+         tatus(message) {
   $('mainStatus').textContent = message;
 }
 
